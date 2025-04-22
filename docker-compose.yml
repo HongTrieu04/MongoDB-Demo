@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  configsvr:
+    image: mongo:6.0
+    command: mongod --configsvr --replSet configReplSet --port 27019
+    ports:
+      - "27019:27019"
+    volumes:
+      - configsvr_data:/data/db
+      - ./scripts:/scripts
+    networks:
+      - mongo-net
+
+  shard1:
+    image: mongo:6.0
+    command: mongod --shardsvr --replSet shard1ReplSet --port 27018
+    ports:
+      - "27018:27018"
+    volumes:
+      - shard1_data:/data/db
+      - ./scripts:/scripts
+    networks:
+      - mongo-net
+
+  shard2:
+    image: mongo:6.0
+    command: mongod --shardsvr --replSet shard2ReplSet --port 27017
+    ports:
+      - "27017:27017"
+    volumes:
+      - shard2_data:/data/db
+      - ./scripts:/scripts
+    networks:
+      - mongo-net
+
+  mongos:
+    image: mongo:6.0
+    command: mongos --configdb configReplSet/configsvr:27019 --port 27016
+    ports:
+      - "27016:27016"
+    volumes:
+      - ./scripts:/scripts
+    networks:
+      - mongo-net
+    depends_on:
+      - configsvr
+      - shard1
+      - shard2
+
+volumes:
+  configsvr_data:
+  shard1_data:
+  shard2_data:
+
+networks:
+  mongo-net:
+    driver: bridge
